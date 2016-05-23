@@ -51,7 +51,7 @@
     },
     "datePublished": "2016-04-17",
     "description": "递归与迭代算法的介绍及转换，涉及一些经典递归算法实现",
-    "wordCount":  384 
+    "wordCount":  386 
   }
 </script>
 
@@ -162,7 +162,7 @@
     &middot; by author
   
   &middot; Read in about 2 min
-  &middot; (384 Words)
+  &middot; (386 Words)
   <br>
   
 <a class="label" href="https://gdonzy.github.io/tags/alogrithms">alogrithms</a>
@@ -182,11 +182,11 @@
   <div class="container content">
   
 
-<h2 id="0-前言">0. 前言</h2>
+<h2 id="0-前言:6ca1fd9681da82758f519415a75dcb3a">0. 前言</h2>
 
 <p>本文主要是谈一下递归与迭代的转换问题,会涉及到一些简单递归算法和二叉树遍历算法的递归与非递归转换。</p>
 
-<h2 id="1-递归与迭代简介">1. 递归与迭代简介</h2>
+<h2 id="1-递归与迭代简介:6ca1fd9681da82758f519415a75dcb3a">1. 递归与迭代简介</h2>
 
 <p>递归：指在定义一个过程或函数时出现调用本过程或本函数的成分。分为直接递归和间接递归，直接递归指直接调用自身;而间接递归指在调用过程中会间接调用自身。
 如果一个递归过程或递归函数中递归调用语句是最后一条执行语句，这种递归调用称为尾递归。
@@ -201,7 +201,7 @@
 
 <p>搜索资料发现：目前有两种比较主流的转换方法，在第二节和第三节分别实例讲解一下。</p>
 
-<h2 id="2-递归转换的简单方法">2. 递归转换的简单方法</h2>
+<h2 id="2-递归转换的简单方法:6ca1fd9681da82758f519415a75dcb3a">2. 递归转换的简单方法</h2>
 
 <p>递归转换的简单方法以factorial递归算法的转换为例：</p>
 
@@ -235,9 +235,9 @@
 	return acc
 </code></pre>
 
-<h2 id="3-利用栈实现递归转换">3. 利用栈实现递归转换</h2>
+<h2 id="3-利用栈实现递归转换:6ca1fd9681da82758f519415a75dcb3a">3. 利用栈实现递归转换</h2>
 
-<h3 id="3-1-前序遍历">3.1 前序遍历</h3>
+<h3 id="3-1-前序遍历:6ca1fd9681da82758f519415a75dcb3a">3.1 前序遍历</h3>
 
 <p>另一种递归转换方法稍微复杂些，适合回溯时情况复杂的递归转换，这种递归转换需要利用栈，二叉树遍历就适用这种状况
 这里是二叉树遍历的完整实现  <a href="https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py">https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py</a></p>
@@ -316,7 +316,7 @@
  
 </code></pre>
 
-<h3 id="3-2-中序遍历">3.2 中序遍历</h3>
+<h3 id="3-2-中序遍历:6ca1fd9681da82758f519415a75dcb3a">3.2 中序遍历</h3>
 
 <p>中序遍历的分析类似与前序遍历，下面是中序遍历的递归和迭代实现</p>
 
@@ -354,7 +354,7 @@
                 pNode = pNode.right
 </code></pre>
 
-<h3 id="3-3-后序遍历">3.3 后序遍历</h3>
+<h3 id="3-3-后序遍历:6ca1fd9681da82758f519415a75dcb3a">3.3 后序遍历</h3>
 
 <p>后序遍历首先遍历左子树，然后遍历右子树，最后访问根结点，在遍历左、右子树时，仍然先遍历左子树，然后遍历右子树，最后遍历根结点。</p>
 
@@ -373,7 +373,7 @@
 <li><p>后序遍历的迭代实现</p></li>
 </ul>
 
-<p>运用上述分析方法：</p>
+<p>同样可以用上述方法分析，不过，后序遍历需要两次访问栈中的节点，每次做不一样的数据，需要做标记，方便确认第几次访问，方便确认第几次访问。</p>
 
 <p>后序遍历的连续递归描述：</p>
 
@@ -420,6 +420,9 @@
                 else:
                     pNode = None    
 </code></pre>
+
+<p>完整代码查看：
+<a href="https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py">https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py</a></p>
 
 </div>
 
