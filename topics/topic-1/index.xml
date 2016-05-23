@@ -9,8 +9,621 @@
     <managingEditor>gxd.try@gmail.com (GaoXiaodong)</managingEditor>
     <webMaster>gxd.try@gmail.com (GaoXiaodong)</webMaster>
     <copyright>(c) 2015 gxd.try@gmail.com.</copyright>
-    <lastBuildDate>Sun, 06 Mar 2016 05:07:42 -0700</lastBuildDate>
+    <lastBuildDate>Sun, 24 Apr 2016 09:40:54 +0800</lastBuildDate>
     <atom:link href="https://gdonzy.github.io/topics/topic-1/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Python的进程、线程和协程</title>
+      <link>https://gdonzy.github.io/2016/04/24/python%E7%9A%84%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B/</link>
+      <pubDate>Sun, 24 Apr 2016 09:40:54 +0800</pubDate>
+      <author>gxd.try@gmail.com (GaoXiaodong)</author>
+      <guid>https://gdonzy.github.io/2016/04/24/python%E7%9A%84%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B/</guid>
+      <description>
+
+&lt;h2 id=&#34;0-前言&#34;&gt;0.前言&lt;/h2&gt;
+
+&lt;p&gt;在计算机技术领域，吞吐量（throughput）是计算机在指定的一段时间内完成编程技术如何影响。本文主要讨论Python的多进程、多线程及协程等编程技术在不同场景下对系统吞吐量的影响。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-cpu消耗型任务-i-o消耗型任务&#34;&gt;1.CPU消耗型任务、I/O消耗型任务&lt;/h2&gt;
+
+&lt;p&gt;计算机执行的任务分为CPU消耗型任务和I/O消耗型任务:&lt;/p&gt;
+
+&lt;h3 id=&#34;1-1-cpu消耗型任务&#34;&gt;1.1 CPU消耗型任务:&lt;/h3&gt;
+
+&lt;p&gt;大部分时间用来执行代码指令,在该任务执行期间，需要持续消耗处理器资源。除非被抢占或者时间片用尽，否则它们通常会一直运行。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-2-i-o消耗型任务&#34;&gt;1.2 I/O消耗型任务:&lt;/h3&gt;
+
+&lt;p&gt;大部分时间用来提交I/O请求或者等待I/O请求。
+外设的访问速度要远远慢于CPU速度，因而CPU在进行I/O操作时，不是马上可以获取I/O的数据，常常需要等待I/O。根据I/O等待方式的不同，I/O操作可以分为 阻塞I/O、非阻塞式I/O、I/O复用（select,poll,epoll,&amp;hellip;）、信号驱动式I/O（SIGIO）、异步I/O（POSIX的aio_系列函数）&lt;/p&gt;
+
+&lt;p&gt;以下是几种I/O访问方式的概述&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;阻塞I/O：
+阻塞I/O的执行流程简述：
+(1)申请后去I/O数据，内核缓冲区为空，进程阻塞，等待数据到达，然后复制到内核缓冲区域。
+(2)将数据从内核缓冲区复制到应用程序缓冲区，然后进程结束阻塞&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程在获得I/O数据前一直阻塞&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;非阻塞I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程不阻塞，一直采用轮询的方式，直到I/O数据准备好&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I/O多路复用：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I/O多路复用的函数也是阻塞的，但I/O多路复用是阻塞在select,epoll这样的系统调用上，而不是阻塞在I/O系统调用上。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;信号驱动式I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程通过信号与内核交互，内核缓冲区准备好I/O数据（期间，进程继续执行），然后数据从内核缓冲区拷贝到进程（期间进程阻塞），数据拷贝完成，进程阻塞结束&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;异步I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;告知内核获取I/O数据，内核执行操作，完成操作后通知数据拷贝完成，进程读取数据。&lt;/p&gt;
+
+&lt;p&gt;讨论I/O操作时，经常会讨论两对概念：阻塞和非阻塞 、同步和异步
+阻塞/非阻塞：进程访问数据时，数据没有就绪，进程是否需要等待，需要等待就是阻塞，反之就是非阻塞
+同步/异步：同步需要进程主动读写数据，读写过程中会发生阻塞;异步只需要I/O操作完成的通知，不主动读写数据，交给操作系统内核完成数据读写。
+上面讨论的I/O操作，阻塞I/O、非阻塞I/O、I/O多路复用、信号驱动式I/O都是同步的，只有异步I/O是属于异步的。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-3-任务性质与多进程-多线程及协程&#34;&gt;1.3 任务性质与多进程、多线程及协程&lt;/h3&gt;
+
+&lt;p&gt;进程与线程比较类似，线程又称之为轻量级进程，一般认为线程在进程内部，是操作系统调度的基本单位，与进程共享地址空间、资源，但拥有自己独立的线程。&lt;/p&gt;
+
+&lt;p&gt;协程常被称为微线程，但协程不同于线程。
+(1)调度方法不同，线程切换的上下文由操作系统内核保存和恢复，而协程在用户态保存和恢复，显然协程调度的代价要小的多。
+(2)线程可以抢占，而协程不可以抢占，协程是通过让出CPU来实现调度的。
+(3)协程占用更少的内存资源，只需要栈空间，而线程需要更多资源。
+其实，从操作系统的角度看，协程只是单线程，通过让出CPU实现协程间切换，一次只有一个协程在执行，而多线程如果运行在多核CPU上，可以同时运行多个线程。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;单核CPU、多CPU消耗型任务
+由于单核CPU，即使多进程/多线程，同一时间依旧只有一个进程可以执行操作，而CPU消耗型任务主要是执行指令，并且进程切换过程中需要消耗系统资源，多进程/多线程在这种情况下反而不如单进程效率高。而使用协程的情况与单线程的情况很相近，虽然协程比线程切换的消耗小，但是在CPU消耗型任务中，线程切换次数相对少，所以协程与线程效率也会比较相近。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;多核CPU、多CPU消耗型任务
+多核CPU下，可以同时运行多个进程/线程，实现CPU消耗型任务的并行计算，此时多进程/线程性能优于单进程/单线程。此时使用协程与单线程情况比较类似，效率同样会低于多进程/多线程。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;单核CPU、多I/O消耗型任务
+由于单核CPU，即使多进程/多线程，同一时间依旧只有一个进程可以执行操作，但是I/O消耗型任务经常会阻塞进程，此时其他进程可以被调度，合理利用这段CPU时间，虽然进程调度也会消耗资源，但是CPU时间利用更充分了，此时多进程/多线程性能应该是优于单进程/单线程。多I/O消耗型任务执行过程中，线程调度会更频繁一些，而协程调度消耗更低，所以协程执行效率应该是高于线程的。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;多核CPU、多I/O消耗型任务
+这种情况下显而易见，多进程/多线程性能会优于单进程。由于涉及到多核CPU，线程可以并行执行，线程的性能要高于协程。&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;2-python中的进程-线程-协程&#34;&gt;2.Python中的进程、线程、协程&lt;/h2&gt;
+
+&lt;p&gt;Python中的进程、线程及协程与上文讨论的进程、线程及协程在概念上是一样的，但实际上，Python中的线程与传统意义上讲的线程又不同。&lt;/p&gt;
+
+&lt;p&gt;CPython中有个GIL(Global Interpretor Lock)。顾名思义，就是Python解释器的一个全局锁。由于GIL的存在，Python的多线程即使在多核CPU上也不能并行运行，又有获得GIL锁的进程才能执行，也就是一个时间下只有一个线程在执行。一方面，线程切换的代价要比协程切换的代价大（线程由操作系统内核调度，协程调度发生在用户态），单从线程/协程切换的代价考虑，协程要比线程性能更好，但是另一方面，协程本质上是一个线程，而多线程技术是多个线程，多个线程被操作系统调度到的可能性要大于协程单个线程的可能性，这也会影响运行性能。综合上面两个方面Python在系统资源不紧张的情况下， Python线程与协程的性能可能是比较相近的。&lt;/p&gt;
+
+&lt;p&gt;对于多核CPU系统，需要并行运行线程的，可以用multiprocessing模块使用进程。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>递归与迭代</title>
+      <link>https://gdonzy.github.io/2016/04/17/%E9%80%92%E5%BD%92%E4%B8%8E%E8%BF%AD%E4%BB%A3/</link>
+      <pubDate>Sun, 17 Apr 2016 16:52:55 +0800</pubDate>
+      <author>gxd.try@gmail.com (GaoXiaodong)</author>
+      <guid>https://gdonzy.github.io/2016/04/17/%E9%80%92%E5%BD%92%E4%B8%8E%E8%BF%AD%E4%BB%A3/</guid>
+      <description>
+
+&lt;h2 id=&#34;0-前言&#34;&gt;0. 前言&lt;/h2&gt;
+
+&lt;p&gt;本文主要是谈一下递归与迭代的转换问题,会涉及到一些简单递归算法和二叉树遍历算法的递归与非递归转换。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-递归与迭代简介&#34;&gt;1. 递归与迭代简介&lt;/h2&gt;
+
+&lt;p&gt;递归：指在定义一个过程或函数时出现调用本过程或本函数的成分。分为直接递归和间接递归，直接递归指直接调用自身;而间接递归指在调用过程中会间接调用自身。
+如果一个递归过程或递归函数中递归调用语句是最后一条执行语句，这种递归调用称为尾递归。
+迭代：重复反馈过程的活动，其目的通常是为了逼近所需目标和结果。通俗理解为有限循环。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;递归与迭代的异同点
+递归与迭代的相同点：递归与迭代都需要执行一些重复操作，并且执行条件会收敛，不会无限执行下去。
+递归与迭代的不同点：递归是有来有回（返回），迭代是有去无回。
+实现递归转换成迭代的关键是：1.将递归的收敛条件转换成迭代的条件执行。2.如何转换递归的返回过程。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;搜索资料发现：目前有两种比较主流的转换方法，在第二节和第三节分别实例讲解一下。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-递归转换的简单方法&#34;&gt;2. 递归转换的简单方法&lt;/h2&gt;
+
+&lt;p&gt;递归转换的简单方法以factorial递归算法的转换为例：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;(1)python实现的原始版本&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;def factorial(n):
+	if n &amp;lt; 2:
+		return 1;
+	return n * factorial(n-1)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;(2)转换成尾递归的格式&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;def factorial(n,acc=1):
+	if n &amp;lt; 2:
+		return 1*acc
+	return factorial(n-1,acc*n)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;(3)转换成迭代格式&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;def factorial(n,acc=1):
+	while n &amp;gt; 1:
+		(n,acc) = (n-1,acc*n)
+	return acc
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;3-利用栈实现递归转换&#34;&gt;3. 利用栈实现递归转换&lt;/h2&gt;
+
+&lt;h3 id=&#34;3-1-前序遍历&#34;&gt;3.1 前序遍历&lt;/h3&gt;
+
+&lt;p&gt;另一种递归转换方法稍微复杂些，适合回溯时情况复杂的递归转换，这种递归转换需要利用栈，二叉树遍历就适用这种状况
+这里是二叉树遍历的完整实现  &lt;a href=&#34;https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py&#34;&gt;https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;以前序遍历为例，简单介绍一下利用栈实现递归转换的方式&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;(1)python版本实现的递归版本&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;前序遍历首先访问根节点，再访问左子树，然后访问右子树。左子树和右子树访问过程中也是先访问根节点，再访问左子树，然后访问右子树。如此循环往复。&lt;/p&gt;
+
+&lt;p&gt;如下就是根据描述，列出的前序遍历的递归实现&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    def preOrderRecursive(self,treeNode):
+        if treeNode == None:
+            return None
+        else:
+            print(treeNode.data,end=&amp;quot;,&amp;quot;)
+            self.preOrderRecursive(treeNode.left)
+            self.preOrderRecursive(treeNode.right)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;(2)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;前序遍历首先访问根节点，再访问左子树，然后访问右子树。左子树和右子树访问过程中也是先访问根节点，再访问左子树，然后访问右子树。如此循环往复。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;观察前序遍历的递归实现，可以发现有四种基本操作：
+- a.节点为空，空操作
+- b.访问该节点（打印节点数据）
+- c.递归访问左子树
+- d.递归访问右子树&lt;/p&gt;
+
+&lt;p&gt;结合递归实现，不拘泥于单次递归，用连续递归的方式描述前序遍历：
+- 1.如果节点不为空，则访问该节点，然后递归访问左子节点
+- 2.重复1操作，直到左子节点为空，左子节点递归访问开始递归返回
+- 3.左子节点递归访问返回后，递归访问右子节点,如果节点为空，则右子节点递归访问返回，然后继续递归返回，递归返回到节点右子节点不为空
+- 4.递归访问右子节点过程中重复执行1-3步骤
+- 5.递归调用何时结束?所有递归返回结束&lt;/p&gt;
+
+&lt;p&gt;接下来将连续递归的方式描述转换成迭代的方式（利用栈）来描述。
+- 1.该节点不为空，访问该节点，将该节点压栈，访问左子节点
+- 2.重复1操作，直到左子节点为空，从栈中取出节点N，如果节点N右子节点为空，继续出栈节点，直到节点N的右子节点不为空
+- 3.尝试访问节点N的右子节点（步骤1）
+- 4.重复执行1-3步骤
+- 5.重复执行何时结束?正在访问的节点为空（需要查看是否有需要回溯查看的节点，需要查看栈）并且栈空（没有需要回溯查看的节点）&lt;/p&gt;
+
+&lt;p&gt;下面就是前序遍历的迭代方式实现：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    def preOrder(self):
+        stack = []
+        pNode = self.root
+        while pNode != None :
+            while pNode != None :
+                print(pNode.data,end=&amp;quot;,&amp;quot;)
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            if len(stack) &amp;gt; 0:
+                pNode = stack.pop()
+            else:
+                pNode = None
+            
+            while pNode != None and pNode.right == None:
+                if len(stack) &amp;gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            
+            if pNode != None:
+                pNode = pNode.right
+ 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;3-2-中序遍历&#34;&gt;3.2 中序遍历&lt;/h3&gt;
+
+&lt;p&gt;中序遍历的分析类似与前序遍历，下面是中序遍历的递归和迭代实现&lt;/p&gt;
+
+&lt;p&gt;中序遍历的递归实现：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    def inOrderRecursive(self,treeNode):
+        if treeNode == None:
+            return None
+        else:
+            self.inOrderRecursive(treeNode.left)
+            print(treeNode.data,end=&amp;quot;,&amp;quot;)
+            self.inOrderRecursive(treeNode.right)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;中序遍历的迭代实现&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    def inOrder(self):
+        stack = []
+        pNode = self.root
+        while pNode != None:
+            while pNode.left != None:
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            print(pNode.data,end=&amp;quot;,&amp;quot;)
+            
+            while pNode != None and pNode.right == None:
+                if len(stack) &amp;gt; 0:
+                    pNode = stack.pop()
+                    print(pNode.data,end=&amp;quot;,&amp;quot;)
+                else:
+                    pNode = None
+            
+            if pNode != None :
+                pNode = pNode.right
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;3-3-后序遍历&#34;&gt;3.3 后序遍历&lt;/h3&gt;
+
+&lt;p&gt;后序遍历首先遍历左子树，然后遍历右子树，最后访问根结点，在遍历左、右子树时，仍然先遍历左子树，然后遍历右子树，最后遍历根结点。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;后序遍历的递归实现&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;def postOrderRecursive(self,treeNode):
+    if treeNode == None:
+        return None
+    else:
+        self.postOrderRecursive(treeNode.left)
+        self.postOrderRecursive(treeNode.right)
+        print(treeNode.data,end=&amp;quot;,&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;后序遍历的迭代实现&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;运用上述分析方法：&lt;/p&gt;
+
+&lt;p&gt;后序遍历的连续递归描述：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    def postOrder(self):
+        stack = []
+        pNode = self.root
+        markNode = None
+        while pNode != None:
+            #左子节点压栈
+            while pNode != None and pNode.left != markNode: #markNode容易忽略
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            if pNode == None:
+                pNode = stack.pop()
+            
+            #没有右子节点的左子节点打印、出栈    
+            while pNode != None and pNode.right == None : 
+                print(pNode.data,end=&amp;quot;,&amp;quot;)
+                if pNode.left == markNode: #markNode无用
+                    markNode = pNode
+                if len(stack) &amp;gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            
+            #右子树处理    
+            if pNode != None and pNode.right != markNode: #markNode可能等于None
+                stack.append(pNode)
+                pNode = pNode.right
+                markNode = pNode
+            elif pNode != None and pNode.right == markNode :
+                print(pNode.data,end=&amp;quot;,&amp;quot;)
+                markNode = pNode
+                if len(stack) &amp;gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            elif pNode != None and pNode.right == None:
+                print(pNode.data,end=&amp;quot;,&amp;quot;)
+                markNode = pNode
+                if len(stack) &amp;gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None    
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>红黑树的原理与实现</title>
+      <link>https://gdonzy.github.io/2016/04/10/%E7%BA%A2%E9%BB%91%E6%A0%91%E7%9A%84%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0/</link>
+      <pubDate>Sun, 10 Apr 2016 11:14:31 +0800</pubDate>
+      <author>gxd.try@gmail.com (GaoXiaodong)</author>
+      <guid>https://gdonzy.github.io/2016/04/10/%E7%BA%A2%E9%BB%91%E6%A0%91%E7%9A%84%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0/</guid>
+      <description>
+
+&lt;h1 id=&#34;本文主要分四个部分&#34;&gt;本文主要分四个部分：&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;0.前言&lt;/li&gt;
+&lt;li&gt;1.红黑树简介&lt;/li&gt;
+&lt;li&gt;2.红黑树的特性及优点？&lt;/li&gt;
+&lt;li&gt;3.红黑树插入&lt;/li&gt;
+&lt;li&gt;4.红黑树删除&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;0-前言&#34;&gt;0.前言&lt;/h1&gt;
+
+&lt;p&gt;本文主要梳理了一下红黑树的算法原理与实现，一是总结，二是希望能够帮助他人学习。
+   本文包括四个部分：
+   第一部分：主要是介绍红黑树的定义及来历。
+   第二部分：介绍了红黑树的优点及性质，红黑树之所以有较好的最坏情况运行时间，就是因为红黑树的性质,此处有简短证明。
+   第三、四部分：主要是论述红黑树的插入、删除，插入、删除操作不会影响到红黑树的性质,进而可以保证红黑树在插入、删除、查找时的最坏情况运行时间。&lt;/p&gt;
+
+&lt;p&gt;简短地说，就是&lt;br /&gt;
+       红黑树性质 &amp;gt;&amp;gt; 保证红黑树最坏情况运行时间（第二部分）
+       红黑树的插入、删除操作 &amp;gt;&amp;gt; 红黑树性质不变（第三、四部分）&lt;/p&gt;
+
+&lt;h1 id=&#34;1-红黑树简介&#34;&gt;1.红黑树简介&lt;/h1&gt;
+
+&lt;pre&gt;&lt;code&gt;红黑树是一种自平衡二叉查找树，它的操作有着良好的最坏情况运行时间，可以在O(log n)时间内做查找，插入和删除。
+红黑树是在1972年由鲁道夫·贝尔发明的，他称之为“对称二叉B树”。它现在的名字是在Leo J.Guibas和Robert Sedgewick于1978年写的一片论文中获得的。后续1993年Andersson提出了一种利用right leaning tree的方法简化红黑树插入、删除操作。1999年，Okasaki提出了优化insert实现的方法。2001年Cormen进一步简化了实现方式。2008年Sedgewick改进了Andersson提出的right leaning tree方法，提出了left-leaning red-black tree方法,进一步简化了红黑树的实现方式¹。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;2-红黑树的特性及优点&#34;&gt;2.红黑树的特性及优点？&lt;/h1&gt;
+
+&lt;p&gt;红黑树的主要性质：
+    1、节点是红色或黑色
+    2、根是黑色
+    3、所有叶子节点（NIL节点）都是黑色
+    4、每个红色节点必须有两个黑色的子节点。（从根节点到每个叶子节点的路径上不能有两个连续的红色节点）
+    5、从任一节点到其每个叶子节点的所有简单路径都包含相同数目的黑色节点&lt;/p&gt;
+
+&lt;p&gt;红黑树是一种自平衡二叉查找树，它的操作有着良好的最坏情况运行时间，可以在O(log n)时间内做查找，插入和删除。
+    红黑树之所以在最坏情况下可以在O(log n)时间内完成查找、插入和删除，主要是因为红黑树的性质决定的，下面简单证明一下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;渐进边界的证明²:
+包含n个内部节点的红黑树的高度是O(log(n))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;略&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;3-红黑树插入&#34;&gt;3.红黑树插入&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;红黑树之所以可以有较好的最坏情况运行时间，是因为其自身的平衡特性，使叶子节点的深度尽量趋于平衡。
+本节主要通过2-3-4树的插入与平衡的关系引申出红黑树的插入与平衡的关系。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&#34;2-3-4树介绍&#34;&gt;2-3-4树介绍&lt;/h2&gt;
+
+&lt;p&gt;2-3-4树主要概念：
+   1、每个节点有1～3个键
+   2、2-节点，有1个键，2个子节点
+   3、3-节点，有2个键，3个子节点
+   4、4-节点，有3个键，4个子节点&lt;/p&gt;
+
+&lt;p&gt;如图，下面是一个典型的2-3-4树&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4Tree.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图1&lt;/center&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;2-3-4树的插入-生长及平衡&#34;&gt;2-3-4树的插入、生长及平衡&lt;/h2&gt;
+
+&lt;h3 id=&#34;2-3-4node的生长过程&#34;&gt;2-3-4node的生长过程&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;2-3-4树的插入也是发生在树的底部的，下面从一个2-节点开始插入，通过下图可以了解2-node &amp;gt; 3-node &amp;gt; 4-node的过程，然后4-node被分割成2-node，接着优势2-node &amp;gt; 3-node -&amp;gt; 4-node的过程。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4nodeGrowth.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图2&lt;/center&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;2-3-4tree向上生长过程&#34;&gt;2-3-4Tree向上生长过程&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;上图中的 2-node &amp;gt; 3-node &amp;gt; 4-node 的插入过程都集中在单个节点内，不会影响全局，而4-node分割成2-node的过程中不是在一个节点内发生的，增加了节点，是否会影响父子节点及叶子节点的平衡性。如下图，4-node的分割可以根据父节点的情况分成两种情况讨论。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/4-nodeSplit.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图3&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;上图根据4-node的父节点不同分两种情况讨论，分析4-node分割情况下是否会影响父子节点及叶子节点的平衡性。下图为父节点为2-node的情况，可以看到4-node的分割不会影响到子树，子树整体搬移就可以了，而父节点会从2-node变成3-node，叶子节点的深度不会受到影响，因此，也不会影响2-3-4树的平衡性。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-4-nodeSplit.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图4&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;第二种情况下，如下图父节点为3-node，当4-node分割时，会上推一个节点到父节点3-node，此时3-node会变成4-node，子树不会受到影响。此时父节点从3-node变成4-node，叶子节点深度也不会受到影响，因此，也不会影响到2-3-4树的平衡性。但是，这不是一个稳定状态父节点4-node还是需要分割成2-node，此时又会向上推送节点，接下来又会是情况一或者情况二，如果是情况一，那么2-3-4树就会稳定，并且此过程不会影响子树及叶子节点深度（即2-3-4树的平衡）;如果是情况二那么还会向上推送节点，并且在这个过程当中同样是不会影响子树及叶子节点深度（即2-3-4树的平衡），直到遇到情况一，树稳定下来，或者一直上升到根节点，然后根节点从3-node变成4-node，根节点从4-node分割成2-node，树的高度整体增加，2-3-4树依旧是平衡的。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3-4-nodeSplit.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图5&lt;/center&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;2-3-4树的平衡性&#34;&gt;2-3-4树的平衡性&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;一颗平衡的2-3-4树按照如上所述的方式，从底部增加节点，2-node &amp;gt; 3-node &amp;gt; 4-node，然后4-node切割成2-node，在向上推送2-node节点，所有节点都遵循这样一个过程就可以保证2-3-4树在增加节点时会继续保持平衡。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;从2-3-4树到红黑树&#34;&gt;从2-3-4树到红黑树&lt;/h2&gt;
+
+&lt;h3 id=&#34;用二叉搜索树表示2-3-4树&#34;&gt;用二叉搜索树表示2-3-4树&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;2-3-4树通过上文论述的自底向上的生长方式可以在插入新键的情况下很好地保持树的平衡性，但是2-3-4树在查找过程中不是很完美，由于2-3-4树可以借鉴二叉搜索树的表示方法，可以使其查找起来更方便。下面将分析一下展示BST如何表示2-3-4树的各种节点，2-node在二叉搜索树中天然支持，3-node及4-node的二叉搜索树的表示方式如下图（使用红边连接表示节点是一个整体）:
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3_4-nodeToBST.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图6&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;通过黑边将2-node、3-node和4-node连接起来构成BST形式的2-3-4树形式，如下图所示：
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4TreeToBST.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图7&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;边线的红色或者黑色是通过节点内部的成员变量color表示的，当节点中的color为红色时，表示其与父节点是红边相连的，黑边同理。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;运用左旋-右旋将3-node及4-node的表示方式归一-left-leaning-red-black-tree-简称llrb-tree&#34;&gt;运用左旋、右旋将3-node及4-node的表示方式归一(Left-leaning Red Black Tree,简称LLRB Tree)&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;从上文可以看到使用二叉搜索树表示2-3-4树中的3-node和4-node形式比较多样，由于形式多样，就会带来解决问题复杂度的提升，所以需要通过一定手段将3-node和4-node的表现形式归一化，方便问题解决。但是在转换表现形式的过程不能影响父子节点及树的平衡。左旋与右旋就是满足上述要求的实现手段。
+如下为左旋的示意图及实现Java代码。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/rotateLeft.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图8&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;private Node rotateLeft(Node h){
+	Node x = h.right;
+	h.right = x.left;
+	x.left = h;
+	x.color = h.color;
+	h.color = RED;
+	return x;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;右旋与左旋类似，如下所示
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/rotateRight.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图9&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;private Node rotateRight(Node h){
+	Node x = h.left;
+	h.left = x.right;
+	x.right = h;
+	x.color = h.color;
+	h.color = RED;
+	return x;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;通过左旋及右旋的方式可以实现3-node和4-node的表现形式归一，如下图所示。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3_4-nodeToOnly.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图10&lt;/center&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;红黑树向上生长过程&#34;&gt;红黑树向上生长过程&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;前文类比2-3-4树中的 2-node &amp;gt; 3-node &amp;gt; 4-node过程，论述了红黑树类似的生长过程。在2-3-4树中还有个4-node分割成2-node，并向上推送2-node的过程，类似地，红黑树通过颜色反转实现此过程。
+
+如下图所示，红黑树通过颜色反转实现类似于2-3-4树中的4-node分割成2-node，并向上推送2-node的过程。类似于上文讨论2-3-4树，此处也按照父节点情况分两种情况讨论。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/flipColors.png&#34; alt=&#34;&#34; /&gt;
+&lt;center&gt;图11&lt;/center&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;private Node flipColors(Node h){
+	h.color = !h.color;
+	h.left.color = !h.left.color;
+	h.right.color = !h.right.color;
+
+	return h;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;经过flipColors，颜色反转后，相当于向父节点推送一个节点，如图10所示，如果父节点位置类似于2-node，则先变成4-node格式，然后转换成3-node的归一格式，红黑树就稳定了;如果父节点位置类似于3-node，则先变成4-node格式,然后转换成4-node的归一格式，然后经过flipColors,反转颜色，直到遇到父节点位置为2-node格式后红黑树稳定，或者到根节点位置为4-node格式，颜色反转后红黑树稳定，不影响红黑树平衡。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;红黑树插入操作与平衡&#34;&gt;红黑树插入操作与平衡&lt;/h3&gt;
+
+&lt;p&gt;类比于2-3-4树的插入、生长过程，红黑树通过红边连接表示2-3-4树的3-node和4-node，通过黑边连接表示2-3-4树的节点间的连接，通过左旋、右旋等操作使2-3-4树的3-node和4-node能够格式归一，通过颜色反转flipColors模拟2-3-4树的4-node分割成2-node过程。红黑树具体插入节点操作参考以下链接：
+&lt;a href=&#34;https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java&#34;&gt;https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;回顾二叉树的性质&#34;&gt;回顾二叉树的性质&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;a
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;红黑树删除操作&#34;&gt;红黑树删除操作&lt;/h1&gt;
+
+&lt;h3 id=&#34;删除非底部节点操作的简化&#34;&gt;删除非底部节点操作的简化&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;删除操作相对于插入操作更复杂，因为插入操作都是发生在树的底部，而删除操作除了可能发生在树的底部，也有可能发生在树的中间。当要删除的节点在树的中部时,如果直接删除此节点，那么需要考虑子树，问题会变得非常复杂。如果要删除的节点为中间节点，如何做到不破坏树的结构，化繁为简，我们可以用树底部某点的键和值替换掉要删除的中部节点的键和值，然后再删掉底部那个节点就可以了。我们删除一个节点，是想抹去该节点中的键和值，并不需要真正清理掉节点，节点只是个容器。那么如何选取底部节点？下面称要删除的中部节点为M节点，我们可以选取M节点左子树的最大键或者右子树的最小键，两者都可以保证替换后，M节点左子树的键都小于M，而右子树的键都大于M。这样就可以转换成删除树的底部节点的问题了。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;删除底部节点与红黑树的性质保持&#34;&gt;删除底部节点与红黑树的性质保持&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;此处提到的底部节点指的是只有叶子节点（NIL）的节点，红黑树中的3-node及4-node（稳定的红黑树中没有4-node）中的节点删除都不会影响到整树的平衡，但是当涉及到2-node时就会影响到红黑树的平衡。
+下面考虑如何通过转换的方式将底部的2-node转换成 非2-node节点。并且转换过程需要保证不破坏红黑树的平衡。
+红黑树中的2-node其与父节点及子节点都是黑色连线，在LLRB树中只要是节点本身及其左子节点是黑色就可以说该节点是2-node，根据2-node的父节点及兄弟节点的情况，可以分成如图12情况：
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-nodeOfLLRB.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;R表示红色节点，B表示黑色节点，R|B表示不确定是红色节点还是黑色节点。x节点为2-node。情况三可以通过右旋操作变为情况二，需要引进某种操作将x节点变为非2-node，并且在转换过程中不会影响红黑树的平衡，下文将论述这些操作moveRedRight和moveRedLeft，自顶向下地进行moveRedRight和moveRedLeft操作，就会自然地阻止情况四和情况五发生。
+下文只需要考虑情况一和情况二（情况三可以转换成情况二）地转换。LLRB树的左倾性质使得考虑问题时常常考虑左节点的情况就可以了。
+图12中的情况一，根据R|B节点的不同，又有两种情况需要考虑，如下是moveRedLeft操作的代码实现及过程示意图。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;private Node moveRedLeft(Node h)
+{
+	flipColors(h);
+	if(isRed(h.right.left))
+	{
+		h.right = rotateRight(h.right);
+		h = rotateLeft(h);
+	}
+	return h;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/moveRedLeft.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;图12中的情况二，根基R|B节点的不同，又有两种情况需要考虑，如下是moveRedRight操作的代码实现及过程示意图。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;private Node moveRedRight(Node h)
+{
+	flipColors(h);
+	if(isRed(h.left.left))
+	{
+		h = rotateRight(h);
+	}
+	return h;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/moveRedRight.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;通过以上过程可以实现2-node的转换，使底部节点删除操作不会影响红黑树的平衡。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;红黑树节点删除操作代码实现及分析&#34;&gt;红黑树节点删除操作代码实现及分析&lt;/h3&gt;
+
+&lt;p&gt;代码参考：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java&#34;&gt;https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Hello</title>

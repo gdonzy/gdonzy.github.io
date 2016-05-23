@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Python on Donzy&#39;s Blogs</title>
+    <link>https://gdonzy.github.io/tags/python/</link>
+    <description>Recent content in Python on Donzy&#39;s Blogs</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-EN</language>
+    <managingEditor>gxd.try@gmail.com (GaoXiaodong)</managingEditor>
+    <webMaster>gxd.try@gmail.com (GaoXiaodong)</webMaster>
+    <copyright>(c) 2015 gxd.try@gmail.com.</copyright>
+    <lastBuildDate>Sun, 24 Apr 2016 09:40:54 +0800</lastBuildDate>
+    <atom:link href="https://gdonzy.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Python的进程、线程和协程</title>
+      <link>https://gdonzy.github.io/2016/04/24/python%E7%9A%84%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B/</link>
+      <pubDate>Sun, 24 Apr 2016 09:40:54 +0800</pubDate>
+      <author>gxd.try@gmail.com (GaoXiaodong)</author>
+      <guid>https://gdonzy.github.io/2016/04/24/python%E7%9A%84%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B/</guid>
+      <description>
+
+&lt;h2 id=&#34;0-前言&#34;&gt;0.前言&lt;/h2&gt;
+
+&lt;p&gt;在计算机技术领域，吞吐量（throughput）是计算机在指定的一段时间内完成编程技术如何影响。本文主要讨论Python的多进程、多线程及协程等编程技术在不同场景下对系统吞吐量的影响。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-cpu消耗型任务-i-o消耗型任务&#34;&gt;1.CPU消耗型任务、I/O消耗型任务&lt;/h2&gt;
+
+&lt;p&gt;计算机执行的任务分为CPU消耗型任务和I/O消耗型任务:&lt;/p&gt;
+
+&lt;h3 id=&#34;1-1-cpu消耗型任务&#34;&gt;1.1 CPU消耗型任务:&lt;/h3&gt;
+
+&lt;p&gt;大部分时间用来执行代码指令,在该任务执行期间，需要持续消耗处理器资源。除非被抢占或者时间片用尽，否则它们通常会一直运行。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-2-i-o消耗型任务&#34;&gt;1.2 I/O消耗型任务:&lt;/h3&gt;
+
+&lt;p&gt;大部分时间用来提交I/O请求或者等待I/O请求。
+外设的访问速度要远远慢于CPU速度，因而CPU在进行I/O操作时，不是马上可以获取I/O的数据，常常需要等待I/O。根据I/O等待方式的不同，I/O操作可以分为 阻塞I/O、非阻塞式I/O、I/O复用（select,poll,epoll,&amp;hellip;）、信号驱动式I/O（SIGIO）、异步I/O（POSIX的aio_系列函数）&lt;/p&gt;
+
+&lt;p&gt;以下是几种I/O访问方式的概述&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;阻塞I/O：
+阻塞I/O的执行流程简述：
+(1)申请后去I/O数据，内核缓冲区为空，进程阻塞，等待数据到达，然后复制到内核缓冲区域。
+(2)将数据从内核缓冲区复制到应用程序缓冲区，然后进程结束阻塞&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程在获得I/O数据前一直阻塞&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;非阻塞I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程不阻塞，一直采用轮询的方式，直到I/O数据准备好&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I/O多路复用：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I/O多路复用的函数也是阻塞的，但I/O多路复用是阻塞在select,epoll这样的系统调用上，而不是阻塞在I/O系统调用上。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;信号驱动式I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;进程通过信号与内核交互，内核缓冲区准备好I/O数据（期间，进程继续执行），然后数据从内核缓冲区拷贝到进程（期间进程阻塞），数据拷贝完成，进程阻塞结束&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;异步I/O：&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;告知内核获取I/O数据，内核执行操作，完成操作后通知数据拷贝完成，进程读取数据。&lt;/p&gt;
+
+&lt;p&gt;讨论I/O操作时，经常会讨论两对概念：阻塞和非阻塞 、同步和异步
+阻塞/非阻塞：进程访问数据时，数据没有就绪，进程是否需要等待，需要等待就是阻塞，反之就是非阻塞
+同步/异步：同步需要进程主动读写数据，读写过程中会发生阻塞;异步只需要I/O操作完成的通知，不主动读写数据，交给操作系统内核完成数据读写。
+上面讨论的I/O操作，阻塞I/O、非阻塞I/O、I/O多路复用、信号驱动式I/O都是同步的，只有异步I/O是属于异步的。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-3-任务性质与多进程-多线程及协程&#34;&gt;1.3 任务性质与多进程、多线程及协程&lt;/h3&gt;
+
+&lt;p&gt;进程与线程比较类似，线程又称之为轻量级进程，一般认为线程在进程内部，是操作系统调度的基本单位，与进程共享地址空间、资源，但拥有自己独立的线程。&lt;/p&gt;
+
+&lt;p&gt;协程常被称为微线程，但协程不同于线程。
+(1)调度方法不同，线程切换的上下文由操作系统内核保存和恢复，而协程在用户态保存和恢复，显然协程调度的代价要小的多。
+(2)线程可以抢占，而协程不可以抢占，协程是通过让出CPU来实现调度的。
+(3)协程占用更少的内存资源，只需要栈空间，而线程需要更多资源。
+其实，从操作系统的角度看，协程只是单线程，通过让出CPU实现协程间切换，一次只有一个协程在执行，而多线程如果运行在多核CPU上，可以同时运行多个线程。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;单核CPU、多CPU消耗型任务
+由于单核CPU，即使多进程/多线程，同一时间依旧只有一个进程可以执行操作，而CPU消耗型任务主要是执行指令，并且进程切换过程中需要消耗系统资源，多进程/多线程在这种情况下反而不如单进程效率高。而使用协程的情况与单线程的情况很相近，虽然协程比线程切换的消耗小，但是在CPU消耗型任务中，线程切换次数相对少，所以协程与线程效率也会比较相近。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;多核CPU、多CPU消耗型任务
+多核CPU下，可以同时运行多个进程/线程，实现CPU消耗型任务的并行计算，此时多进程/线程性能优于单进程/单线程。此时使用协程与单线程情况比较类似，效率同样会低于多进程/多线程。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;单核CPU、多I/O消耗型任务
+由于单核CPU，即使多进程/多线程，同一时间依旧只有一个进程可以执行操作，但是I/O消耗型任务经常会阻塞进程，此时其他进程可以被调度，合理利用这段CPU时间，虽然进程调度也会消耗资源，但是CPU时间利用更充分了，此时多进程/多线程性能应该是优于单进程/单线程。多I/O消耗型任务执行过程中，线程调度会更频繁一些，而协程调度消耗更低，所以协程执行效率应该是高于线程的。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;多核CPU、多I/O消耗型任务
+这种情况下显而易见，多进程/多线程性能会优于单进程。由于涉及到多核CPU，线程可以并行执行，线程的性能要高于协程。&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;2-python中的进程-线程-协程&#34;&gt;2.Python中的进程、线程、协程&lt;/h2&gt;
+
+&lt;p&gt;Python中的进程、线程及协程与上文讨论的进程、线程及协程在概念上是一样的，但实际上，Python中的线程与传统意义上讲的线程又不同。&lt;/p&gt;
+
+&lt;p&gt;CPython中有个GIL(Global Interpretor Lock)。顾名思义，就是Python解释器的一个全局锁。由于GIL的存在，Python的多线程即使在多核CPU上也不能并行运行，又有获得GIL锁的进程才能执行，也就是一个时间下只有一个线程在执行。一方面，线程切换的代价要比协程切换的代价大（线程由操作系统内核调度，协程调度发生在用户态），单从线程/协程切换的代价考虑，协程要比线程性能更好，但是另一方面，协程本质上是一个线程，而多线程技术是多个线程，多个线程被操作系统调度到的可能性要大于协程单个线程的可能性，这也会影响运行性能。综合上面两个方面Python在系统资源不紧张的情况下， Python线程与协程的性能可能是比较相近的。&lt;/p&gt;
+
+&lt;p&gt;对于多核CPU系统，需要并行运行线程的，可以用multiprocessing模块使用进程。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

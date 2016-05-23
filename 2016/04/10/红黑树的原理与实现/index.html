@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]> <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]> <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>红黑树的原理与实现  &middot; Donzy&#39;s Blogs</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+<meta name="description" content="红黑树原理讲解及java实现" />
+
+<meta name="keywords" content="alogrithm, red black trees, ">
+
+
+<meta property="og:title" content="红黑树的原理与实现  &middot; Donzy&#39;s Blogs ">
+<meta property="og:site_name" content="Donzy&#39;s Blogs"/>
+<meta property="og:url" content="https://gdonzy.github.io/2016/04/10/%E7%BA%A2%E9%BB%91%E6%A0%91%E7%9A%84%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0/" />
+<meta property="og:locale" content="en-EN">
+
+
+<meta property="og:type" content="article" />
+<meta property="og:description" content="红黑树原理讲解及java实现"/>
+<meta property="og:article:published_time" content="2016-04-10T11:14:31&#43;08:00" />
+<meta property="og:article:modified_time" content="2016-04-10T11:14:31&#43;08:00" />
+
+  
+    
+<meta property="og:article:tag" content="alogrithm">
+    
+<meta property="og:article:tag" content="red black trees">
+    
+  
+
+  
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Article",
+    "headline": "红黑树的原理与实现",
+    "author": {
+      "@type": "Person",
+      "name": "http://profiles.google.com/+?rel=author"
+    },
+    "datePublished": "2016-04-10",
+    "description": "红黑树原理讲解及java实现",
+    "wordCount":  232 
+  }
+</script>
+
+
+
+<link rel="canonical" href="https://gdonzy.github.io/2016/04/10/%E7%BA%A2%E9%BB%91%E6%A0%91%E7%9A%84%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0/" />
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://gdonzy.github.io/touch-icon-144-precomposed.png">
+<link href="https://gdonzy.github.io/favicon.png" rel="icon">
+
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  <!--[if lt IE 9]>
+<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+
+<link href='https://fonts.googleapis.com/css?family=Merriweather:300%7CRaleway%7COpen+Sans' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="https://gdonzy.github.io/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://gdonzy.github.io/css/style.css">
+<link rel="stylesheet" href="https://gdonzy.github.io/css/highlight/default.css">
+
+  
+</head>
+<body>
+  <main id="main-wrapper" class="container main_wrapper has-sidebar">
+    <header id="main-header" class="container main_header">
+  <div class="container brand">
+  <div class="container title h1-like">
+  <a class="baselink" href="https://gdonzy.github.io/">
+  Donzy
+
+</a>
+
+</div>
+
+  
+<div class="container topline">
+  
+  Enjoy life,enjoy creating!
+
+
+</div>
+
+
+</div>
+
+  <nav class="container nav primary no-print">
+  
+
+<a class="homelink" href="https://gdonzy.github.io/">home</a>
+
+
+  
+<a href="https://gdonzy.github.io/about">About</a>
+
+<a href="https://gdonzy.github.io/post" title="Show list of posts">Posts</a>
+
+<a href="https://gdonzy.github.io/tags" title="Show list of tags">Tags</a>
+
+
+</nav>
+
+<div class="container nav secondary no-print">
+  
+<a id="contact-link-email" class="contact_link" href="mailto:gxd.try@gmail.com">
+  <span class="fa fa-envelope-square"></span><span>email</span></a>
+
+
+
+<a id="contact-link-github" class="contact_link" href="https://github.com/gdonzy">
+  <span class="fa fa-github-square"></span><span>github</span></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+
+  
+
+</header>
+
+
+<article id="main-content" class="container main_content single">
+  <header class="container hat">
+  <h1>红黑树的原理与实现
+</h1>
+
+  <div class="metas">
+<time datetime="2016-04-10">10 Apr, 2016</time>
+
+
+  
+    &middot; by donzy
+  
+  &middot; Read in about 2 min
+  &middot; (232 Words)
+  <br>
+  
+<a class="label" href="https://gdonzy.github.io/tags/alogrithm">alogrithm</a>
+
+
+
+</div>
+
+</header>
+
+  <div class="container content">
+  
+
+<h1 id="本文主要分四个部分">本文主要分四个部分：</h1>
+
+<ul>
+<li>0.前言</li>
+<li>1.红黑树简介</li>
+<li>2.红黑树的特性及优点？</li>
+<li>3.红黑树插入</li>
+<li>4.红黑树删除</li>
+</ul>
+
+<h1 id="0-前言">0.前言</h1>
+
+<p>本文主要梳理了一下红黑树的算法原理与实现，一是总结，二是希望能够帮助他人学习。
+   本文包括四个部分：
+   第一部分：主要是介绍红黑树的定义及来历。
+   第二部分：介绍了红黑树的优点及性质，红黑树之所以有较好的最坏情况运行时间，就是因为红黑树的性质,此处有简短证明。
+   第三、四部分：主要是论述红黑树的插入、删除，插入、删除操作不会影响到红黑树的性质,进而可以保证红黑树在插入、删除、查找时的最坏情况运行时间。</p>
+
+<p>简短地说，就是<br />
+       红黑树性质 &gt;&gt; 保证红黑树最坏情况运行时间（第二部分）
+       红黑树的插入、删除操作 &gt;&gt; 红黑树性质不变（第三、四部分）</p>
+
+<h1 id="1-红黑树简介">1.红黑树简介</h1>
+
+<pre><code>红黑树是一种自平衡二叉查找树，它的操作有着良好的最坏情况运行时间，可以在O(log n)时间内做查找，插入和删除。
+红黑树是在1972年由鲁道夫·贝尔发明的，他称之为“对称二叉B树”。它现在的名字是在Leo J.Guibas和Robert Sedgewick于1978年写的一片论文中获得的。后续1993年Andersson提出了一种利用right leaning tree的方法简化红黑树插入、删除操作。1999年，Okasaki提出了优化insert实现的方法。2001年Cormen进一步简化了实现方式。2008年Sedgewick改进了Andersson提出的right leaning tree方法，提出了left-leaning red-black tree方法,进一步简化了红黑树的实现方式¹。
+</code></pre>
+
+<h1 id="2-红黑树的特性及优点">2.红黑树的特性及优点？</h1>
+
+<p>红黑树的主要性质：
+    1、节点是红色或黑色
+    2、根是黑色
+    3、所有叶子节点（NIL节点）都是黑色
+    4、每个红色节点必须有两个黑色的子节点。（从根节点到每个叶子节点的路径上不能有两个连续的红色节点）
+    5、从任一节点到其每个叶子节点的所有简单路径都包含相同数目的黑色节点</p>
+
+<p>红黑树是一种自平衡二叉查找树，它的操作有着良好的最坏情况运行时间，可以在O(log n)时间内做查找，插入和删除。
+    红黑树之所以在最坏情况下可以在O(log n)时间内完成查找、插入和删除，主要是因为红黑树的性质决定的，下面简单证明一下：</p>
+
+<pre><code>渐进边界的证明²:
+包含n个内部节点的红黑树的高度是O(log(n))
+</code></pre>
+
+<blockquote>
+<p>略</p>
+</blockquote>
+
+<h1 id="3-红黑树插入">3.红黑树插入</h1>
+
+<blockquote>
+<p>红黑树之所以可以有较好的最坏情况运行时间，是因为其自身的平衡特性，使叶子节点的深度尽量趋于平衡。
+本节主要通过2-3-4树的插入与平衡的关系引申出红黑树的插入与平衡的关系。</p>
+</blockquote>
+
+<h2 id="2-3-4树介绍">2-3-4树介绍</h2>
+
+<p>2-3-4树主要概念：
+   1、每个节点有1～3个键
+   2、2-节点，有1个键，2个子节点
+   3、3-节点，有2个键，3个子节点
+   4、4-节点，有3个键，4个子节点</p>
+
+<p>如图，下面是一个典型的2-3-4树</p>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4Tree.png" alt="" />
+<center>图1</center></p>
+
+<h2 id="2-3-4树的插入-生长及平衡">2-3-4树的插入、生长及平衡</h2>
+
+<h3 id="2-3-4node的生长过程">2-3-4node的生长过程</h3>
+
+<pre><code>2-3-4树的插入也是发生在树的底部的，下面从一个2-节点开始插入，通过下图可以了解2-node &gt; 3-node &gt; 4-node的过程，然后4-node被分割成2-node，接着优势2-node &gt; 3-node -&gt; 4-node的过程。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4nodeGrowth.png" alt="" />
+<center>图2</center></p>
+
+<h3 id="2-3-4tree向上生长过程">2-3-4Tree向上生长过程</h3>
+
+<pre><code>上图中的 2-node &gt; 3-node &gt; 4-node 的插入过程都集中在单个节点内，不会影响全局，而4-node分割成2-node的过程中不是在一个节点内发生的，增加了节点，是否会影响父子节点及叶子节点的平衡性。如下图，4-node的分割可以根据父节点的情况分成两种情况讨论。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/4-nodeSplit.png" alt="" />
+<center>图3</center></p>
+
+<pre><code>上图根据4-node的父节点不同分两种情况讨论，分析4-node分割情况下是否会影响父子节点及叶子节点的平衡性。下图为父节点为2-node的情况，可以看到4-node的分割不会影响到子树，子树整体搬移就可以了，而父节点会从2-node变成3-node，叶子节点的深度不会受到影响，因此，也不会影响2-3-4树的平衡性。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-4-nodeSplit.png" alt="" />
+<center>图4</center></p>
+
+<pre><code>第二种情况下，如下图父节点为3-node，当4-node分割时，会上推一个节点到父节点3-node，此时3-node会变成4-node，子树不会受到影响。此时父节点从3-node变成4-node，叶子节点深度也不会受到影响，因此，也不会影响到2-3-4树的平衡性。但是，这不是一个稳定状态父节点4-node还是需要分割成2-node，此时又会向上推送节点，接下来又会是情况一或者情况二，如果是情况一，那么2-3-4树就会稳定，并且此过程不会影响子树及叶子节点深度（即2-3-4树的平衡）;如果是情况二那么还会向上推送节点，并且在这个过程当中同样是不会影响子树及叶子节点深度（即2-3-4树的平衡），直到遇到情况一，树稳定下来，或者一直上升到根节点，然后根节点从3-node变成4-node，根节点从4-node分割成2-node，树的高度整体增加，2-3-4树依旧是平衡的。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3-4-nodeSplit.png" alt="" />
+<center>图5</center></p>
+
+<h3 id="2-3-4树的平衡性">2-3-4树的平衡性</h3>
+
+<pre><code>一颗平衡的2-3-4树按照如上所述的方式，从底部增加节点，2-node &gt; 3-node &gt; 4-node，然后4-node切割成2-node，在向上推送2-node节点，所有节点都遵循这样一个过程就可以保证2-3-4树在增加节点时会继续保持平衡。
+</code></pre>
+
+<h2 id="从2-3-4树到红黑树">从2-3-4树到红黑树</h2>
+
+<h3 id="用二叉搜索树表示2-3-4树">用二叉搜索树表示2-3-4树</h3>
+
+<pre><code>2-3-4树通过上文论述的自底向上的生长方式可以在插入新键的情况下很好地保持树的平衡性，但是2-3-4树在查找过程中不是很完美，由于2-3-4树可以借鉴二叉搜索树的表示方法，可以使其查找起来更方便。下面将分析一下展示BST如何表示2-3-4树的各种节点，2-node在二叉搜索树中天然支持，3-node及4-node的二叉搜索树的表示方式如下图（使用红边连接表示节点是一个整体）:
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3_4-nodeToBST.png" alt="" />
+<center>图6</center></p>
+
+<pre><code>通过黑边将2-node、3-node和4-node连接起来构成BST形式的2-3-4树形式，如下图所示：
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-3-4TreeToBST.png" alt="" />
+<center>图7</center></p>
+
+<pre><code>边线的红色或者黑色是通过节点内部的成员变量color表示的，当节点中的color为红色时，表示其与父节点是红边相连的，黑边同理。
+</code></pre>
+
+<h3 id="运用左旋-右旋将3-node及4-node的表示方式归一-left-leaning-red-black-tree-简称llrb-tree">运用左旋、右旋将3-node及4-node的表示方式归一(Left-leaning Red Black Tree,简称LLRB Tree)</h3>
+
+<pre><code>从上文可以看到使用二叉搜索树表示2-3-4树中的3-node和4-node形式比较多样，由于形式多样，就会带来解决问题复杂度的提升，所以需要通过一定手段将3-node和4-node的表现形式归一化，方便问题解决。但是在转换表现形式的过程不能影响父子节点及树的平衡。左旋与右旋就是满足上述要求的实现手段。
+如下为左旋的示意图及实现Java代码。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/rotateLeft.png" alt="" />
+<center>图8</center></p>
+
+<pre><code>private Node rotateLeft(Node h){
+	Node x = h.right;
+	h.right = x.left;
+	x.left = h;
+	x.color = h.color;
+	h.color = RED;
+	return x;
+}
+</code></pre>
+
+<pre><code>右旋与左旋类似，如下所示
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/rotateRight.png" alt="" />
+<center>图9</center></p>
+
+<pre><code>private Node rotateRight(Node h){
+	Node x = h.left;
+	h.left = x.right;
+	x.right = h;
+	x.color = h.color;
+	h.color = RED;
+	return x;
+}
+</code></pre>
+
+<pre><code>通过左旋及右旋的方式可以实现3-node和4-node的表现形式归一，如下图所示。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/3_4-nodeToOnly.png" alt="" />
+<center>图10</center></p>
+
+<h3 id="红黑树向上生长过程">红黑树向上生长过程</h3>
+
+<pre><code>前文类比2-3-4树中的 2-node &gt; 3-node &gt; 4-node过程，论述了红黑树类似的生长过程。在2-3-4树中还有个4-node分割成2-node，并向上推送2-node的过程，类似地，红黑树通过颜色反转实现此过程。
+
+如下图所示，红黑树通过颜色反转实现类似于2-3-4树中的4-node分割成2-node，并向上推送2-node的过程。类似于上文讨论2-3-4树，此处也按照父节点情况分两种情况讨论。
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/flipColors.png" alt="" />
+<center>图11</center></p>
+
+<pre><code>private Node flipColors(Node h){
+	h.color = !h.color;
+	h.left.color = !h.left.color;
+	h.right.color = !h.right.color;
+
+	return h;
+}
+</code></pre>
+
+<pre><code>经过flipColors，颜色反转后，相当于向父节点推送一个节点，如图10所示，如果父节点位置类似于2-node，则先变成4-node格式，然后转换成3-node的归一格式，红黑树就稳定了;如果父节点位置类似于3-node，则先变成4-node格式,然后转换成4-node的归一格式，然后经过flipColors,反转颜色，直到遇到父节点位置为2-node格式后红黑树稳定，或者到根节点位置为4-node格式，颜色反转后红黑树稳定，不影响红黑树平衡。
+</code></pre>
+
+<h3 id="红黑树插入操作与平衡">红黑树插入操作与平衡</h3>
+
+<p>类比于2-3-4树的插入、生长过程，红黑树通过红边连接表示2-3-4树的3-node和4-node，通过黑边连接表示2-3-4树的节点间的连接，通过左旋、右旋等操作使2-3-4树的3-node和4-node能够格式归一，通过颜色反转flipColors模拟2-3-4树的4-node分割成2-node过程。红黑树具体插入节点操作参考以下链接：
+<a href="https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java">https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java</a></p>
+
+<h3 id="回顾二叉树的性质">回顾二叉树的性质</h3>
+
+<pre><code>a
+</code></pre>
+
+<h1 id="红黑树删除操作">红黑树删除操作</h1>
+
+<h3 id="删除非底部节点操作的简化">删除非底部节点操作的简化</h3>
+
+<pre><code>删除操作相对于插入操作更复杂，因为插入操作都是发生在树的底部，而删除操作除了可能发生在树的底部，也有可能发生在树的中间。当要删除的节点在树的中部时,如果直接删除此节点，那么需要考虑子树，问题会变得非常复杂。如果要删除的节点为中间节点，如何做到不破坏树的结构，化繁为简，我们可以用树底部某点的键和值替换掉要删除的中部节点的键和值，然后再删掉底部那个节点就可以了。我们删除一个节点，是想抹去该节点中的键和值，并不需要真正清理掉节点，节点只是个容器。那么如何选取底部节点？下面称要删除的中部节点为M节点，我们可以选取M节点左子树的最大键或者右子树的最小键，两者都可以保证替换后，M节点左子树的键都小于M，而右子树的键都大于M。这样就可以转换成删除树的底部节点的问题了。
+</code></pre>
+
+<h3 id="删除底部节点与红黑树的性质保持">删除底部节点与红黑树的性质保持</h3>
+
+<pre><code>此处提到的底部节点指的是只有叶子节点（NIL）的节点，红黑树中的3-node及4-node（稳定的红黑树中没有4-node）中的节点删除都不会影响到整树的平衡，但是当涉及到2-node时就会影响到红黑树的平衡。
+下面考虑如何通过转换的方式将底部的2-node转换成 非2-node节点。并且转换过程需要保证不破坏红黑树的平衡。
+红黑树中的2-node其与父节点及子节点都是黑色连线，在LLRB树中只要是节点本身及其左子节点是黑色就可以说该节点是2-node，根据2-node的父节点及兄弟节点的情况，可以分成如图12情况：
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/2-nodeOfLLRB.png" alt="" /></p>
+
+<pre><code>R表示红色节点，B表示黑色节点，R|B表示不确定是红色节点还是黑色节点。x节点为2-node。情况三可以通过右旋操作变为情况二，需要引进某种操作将x节点变为非2-node，并且在转换过程中不会影响红黑树的平衡，下文将论述这些操作moveRedRight和moveRedLeft，自顶向下地进行moveRedRight和moveRedLeft操作，就会自然地阻止情况四和情况五发生。
+下文只需要考虑情况一和情况二（情况三可以转换成情况二）地转换。LLRB树的左倾性质使得考虑问题时常常考虑左节点的情况就可以了。
+图12中的情况一，根据R|B节点的不同，又有两种情况需要考虑，如下是moveRedLeft操作的代码实现及过程示意图。
+</code></pre>
+
+<pre><code>private Node moveRedLeft(Node h)
+{
+	flipColors(h);
+	if(isRed(h.right.left))
+	{
+		h.right = rotateRight(h.right);
+		h = rotateLeft(h);
+	}
+	return h;
+}
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/moveRedLeft.png" alt="" /></p>
+
+<pre><code>图12中的情况二，根基R|B节点的不同，又有两种情况需要考虑，如下是moveRedRight操作的代码实现及过程示意图。
+</code></pre>
+
+<pre><code>private Node moveRedRight(Node h)
+{
+	flipColors(h);
+	if(isRed(h.left.left))
+	{
+		h = rotateRight(h);
+	}
+	return h;
+}
+</code></pre>
+
+<p><img src="https://github.com/gdonzy/gdonzy.github.io/raw/master/images/RedBlackTree/moveRedRight.png" alt="" /></p>
+
+<pre><code>通过以上过程可以实现2-node的转换，使底部节点删除操作不会影响红黑树的平衡。
+</code></pre>
+
+<h3 id="红黑树节点删除操作代码实现及分析">红黑树节点删除操作代码实现及分析</h3>
+
+<p>代码参考：</p>
+
+<p><a href="https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java">https://github.com/gdonzy/Essay/tree/master/alogrithm/src/com/donzy/search/RedBlackBST.java</a></p>
+
+</div>
+
+
+  <footer class="container">
+  <div class="container navigation no-print">
+  <h2>Navigation</h2>
+  
+  
+
+    
+    <a class="prev" href="https://gdonzy.github.io/2016/03/06/hello/" title="Hello">
+      Previous
+    </a>
+    
+
+    
+    <a class="next" href="https://gdonzy.github.io/2016/04/17/%E9%80%92%E5%BD%92%E4%B8%8E%E8%BF%AD%E4%BB%A3/" title="递归与迭代">
+      Next
+    </a>
+    
+
+  
+
+
+</div>
+
+  <div class="container comments">
+  <h2>Comments</h2>
+  
+
+</div>
+
+</footer>
+
+</article>
+      <footer id="main-footer" class="container main_footer">
+  
+
+  <div class="container nav foot no-print">
+  
+<a href="https://gdonzy.github.io/license">license</a>
+
+
+  <a class="toplink" href="#">back to top</a>
+
+</div>
+
+  <div class="container credits">
+  
+<div class="container footline">
+  
+  code with <i class='fa fa-heart'></i>
+
+
+</div>
+
+
+  
+<div class="container copyright">
+  
+  &copy; 2015 gxd.try@gmail.com.
+
+
+</div>
+
+
+</div>
+
+</footer>
+
+    </main>
+    
+
+
+<script src="https://gdonzy.github.io/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+
+
+    
+  </body>
+</html>
+

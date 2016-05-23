@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]> <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]> <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>递归与迭代  &middot; Donzy&#39;s Blogs</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+<meta name="description" content="递归与迭代算法的介绍及转换，涉及一些经典递归算法实现" />
+
+<meta name="keywords" content="alogrithms, recursion, 递归转换, ">
+
+
+<meta property="og:title" content="递归与迭代  &middot; Donzy&#39;s Blogs ">
+<meta property="og:site_name" content="Donzy&#39;s Blogs"/>
+<meta property="og:url" content="https://gdonzy.github.io/2016/05/09/%E9%80%92%E5%BD%92%E4%B8%8E%E8%BF%AD%E4%BB%A3/" />
+<meta property="og:locale" content="en-EN">
+
+
+<meta property="og:type" content="article" />
+<meta property="og:description" content="递归与迭代算法的介绍及转换，涉及一些经典递归算法实现"/>
+<meta property="og:article:published_time" content="2016-05-09T16:52:55&#43;08:00" />
+<meta property="og:article:modified_time" content="2016-05-09T16:52:55&#43;08:00" />
+
+  
+    
+<meta property="og:article:tag" content="alogrithms">
+    
+<meta property="og:article:tag" content="recursion">
+    
+<meta property="og:article:tag" content="递归转换">
+    
+  
+
+  
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Article",
+    "headline": "递归与迭代",
+    "author": {
+      "@type": "Person",
+      "name": "http://profiles.google.com/+?rel=author"
+    },
+    "datePublished": "2016-05-09",
+    "description": "递归与迭代算法的介绍及转换，涉及一些经典递归算法实现",
+    "wordCount":  384 
+  }
+</script>
+
+
+
+<link rel="canonical" href="https://gdonzy.github.io/2016/05/09/%E9%80%92%E5%BD%92%E4%B8%8E%E8%BF%AD%E4%BB%A3/" />
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://gdonzy.github.io/touch-icon-144-precomposed.png">
+<link href="https://gdonzy.github.io/favicon.png" rel="icon">
+
+<meta name="generator" content="Hugo 0.16-DEV" />
+
+  <!--[if lt IE 9]>
+<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+
+<link href='https://fonts.googleapis.com/css?family=Merriweather:300%7CRaleway%7COpen+Sans' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="https://gdonzy.github.io/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://gdonzy.github.io/css/style.css">
+<link rel="stylesheet" href="https://gdonzy.github.io/css/highlight/default.css">
+
+  
+</head>
+<body>
+  <main id="main-wrapper" class="container main_wrapper has-sidebar">
+    <header id="main-header" class="container main_header">
+  <div class="container brand">
+  <div class="container title h1-like">
+  <a class="baselink" href="https://gdonzy.github.io/">
+  Donzy
+
+</a>
+
+</div>
+
+  
+<div class="container topline">
+  
+  Enjoy life,enjoy creating!
+
+
+</div>
+
+
+</div>
+
+  <nav class="container nav primary no-print">
+  
+
+<a class="homelink" href="https://gdonzy.github.io/">home</a>
+
+
+  
+<a href="https://gdonzy.github.io/about">About</a>
+
+<a href="https://gdonzy.github.io/post" title="Show list of posts">Posts</a>
+
+<a href="https://gdonzy.github.io/tags" title="Show list of tags">Tags</a>
+
+
+</nav>
+
+<div class="container nav secondary no-print">
+  
+<a id="contact-link-email" class="contact_link" href="mailto:gxd.try@gmail.com">
+  <span class="fa fa-envelope-square"></span><span>email</span></a>
+
+
+
+<a id="contact-link-github" class="contact_link" href="https://github.com/gdonzy">
+  <span class="fa fa-github-square"></span><span>github</span></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+
+  
+
+</header>
+
+
+<article id="main-content" class="container main_content single">
+  <header class="container hat">
+  <h1>递归与迭代
+</h1>
+
+  <div class="metas">
+<time datetime="2016-05-09">9 May, 2016</time>
+
+
+  
+    &middot; by author
+  
+  &middot; Read in about 2 min
+  &middot; (384 Words)
+  <br>
+  
+<a class="label" href="https://gdonzy.github.io/tags/alogrithms">alogrithms</a>
+
+<a class="label" href="https://gdonzy.github.io/tags/recursion">recursion</a>
+
+<a class="label" href="https://gdonzy.github.io/tags/iteration">iteration</a>
+
+<a class="label" href="https://gdonzy.github.io/tags/%E4%BA%8C%E5%8F%89%E6%A0%91%E9%81%8D%E5%8E%86">二叉树遍历</a>
+
+
+
+</div>
+
+</header>
+
+  <div class="container content">
+  
+
+<h2 id="0-前言:6ca1fd9681da82758f519415a75dcb3a">0. 前言</h2>
+
+<p>本文主要是谈一下递归与迭代的转换问题,会涉及到一些简单递归算法和二叉树遍历算法的递归与非递归转换。</p>
+
+<h2 id="1-递归与迭代简介:6ca1fd9681da82758f519415a75dcb3a">1. 递归与迭代简介</h2>
+
+<p>递归：指在定义一个过程或函数时出现调用本过程或本函数的成分。分为直接递归和间接递归，直接递归指直接调用自身;而间接递归指在调用过程中会间接调用自身。
+如果一个递归过程或递归函数中递归调用语句是最后一条执行语句，这种递归调用称为尾递归。
+迭代：重复反馈过程的活动，其目的通常是为了逼近所需目标和结果。通俗理解为有限循环。</p>
+
+<ul>
+<li>递归与迭代的异同点
+递归与迭代的相同点：递归与迭代都需要执行一些重复操作，并且执行条件会收敛，不会无限执行下去。
+递归与迭代的不同点：递归是有来有回（返回），迭代是有去无回。
+实现递归转换成迭代的关键是：1.将递归的收敛条件转换成迭代的条件执行。2.如何转换递归的返回过程。</li>
+</ul>
+
+<p>搜索资料发现：目前有两种比较主流的转换方法，在第二节和第三节分别实例讲解一下。</p>
+
+<h2 id="2-递归转换的简单方法:6ca1fd9681da82758f519415a75dcb3a">2. 递归转换的简单方法</h2>
+
+<p>递归转换的简单方法以factorial递归算法的转换为例：</p>
+
+<ul>
+<li>(1)python实现的原始版本</li>
+</ul>
+
+<pre><code>def factorial(n):
+	if n &lt; 2:
+		return 1;
+	return n * factorial(n-1)
+</code></pre>
+
+<ul>
+<li>(2)转换成尾递归的格式</li>
+</ul>
+
+<pre><code>def factorial(n,acc=1):
+	if n &lt; 2:
+		return 1*acc
+	return factorial(n-1,acc*n)
+</code></pre>
+
+<ul>
+<li>(3)转换成迭代格式</li>
+</ul>
+
+<pre><code>def factorial(n,acc=1):
+	while n &gt; 1:
+		(n,acc) = (n-1,acc*n)
+	return acc
+</code></pre>
+
+<h2 id="3-利用栈实现递归转换:6ca1fd9681da82758f519415a75dcb3a">3. 利用栈实现递归转换</h2>
+
+<h3 id="3-1-前序遍历:6ca1fd9681da82758f519415a75dcb3a">3.1 前序遍历</h3>
+
+<p>另一种递归转换方法稍微复杂些，适合回溯时情况复杂的递归转换，这种递归转换需要利用栈，二叉树遍历就适用这种状况
+这里是二叉树遍历的完整实现  <a href="https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py">https://github.com/gdonzy/Essay/blob/master/dataStruct/binarytree.py</a></p>
+
+<p>以前序遍历为例，简单介绍一下利用栈实现递归转换的方式</p>
+
+<ul>
+<li>(1)python版本实现的递归版本</li>
+</ul>
+
+<p>前序遍历首先访问根节点，再访问左子树，然后访问右子树。左子树和右子树访问过程中也是先访问根节点，再访问左子树，然后访问右子树。如此循环往复。</p>
+
+<p>如下就是根据描述，列出的前序遍历的递归实现</p>
+
+<pre><code>    def preOrderRecursive(self,treeNode):
+        if treeNode == None:
+            return None
+        else:
+            print(treeNode.data,end=&quot;,&quot;)
+            self.preOrderRecursive(treeNode.left)
+            self.preOrderRecursive(treeNode.right)
+</code></pre>
+
+<ul>
+<li>(2)</li>
+</ul>
+
+<blockquote>
+<p>前序遍历首先访问根节点，再访问左子树，然后访问右子树。左子树和右子树访问过程中也是先访问根节点，再访问左子树，然后访问右子树。如此循环往复。</p>
+</blockquote>
+
+<p>观察前序遍历的递归实现，可以发现有四种基本操作：
+- a.节点为空，空操作
+- b.访问该节点（打印节点数据）
+- c.递归访问左子树
+- d.递归访问右子树</p>
+
+<p>结合递归实现，不拘泥于单次递归，用连续递归的方式描述前序遍历：
+- 1.如果节点不为空，则访问该节点，然后递归访问左子节点
+- 2.重复1操作，直到左子节点为空，左子节点递归访问开始递归返回
+- 3.左子节点递归访问返回后，递归访问右子节点,如果节点为空，则右子节点递归访问返回，然后继续递归返回，递归返回到节点右子节点不为空
+- 4.递归访问右子节点过程中重复执行1-3步骤
+- 5.递归调用何时结束?所有递归返回结束</p>
+
+<p>接下来将连续递归的方式描述转换成迭代的方式（利用栈）来描述。
+- 1.该节点不为空，访问该节点，将该节点压栈，访问左子节点
+- 2.重复1操作，直到左子节点为空，从栈中取出节点N，如果节点N右子节点为空，继续出栈节点，直到节点N的右子节点不为空
+- 3.尝试访问节点N的右子节点（步骤1）
+- 4.重复执行1-3步骤
+- 5.重复执行何时结束?正在访问的节点为空（需要查看是否有需要回溯查看的节点，需要查看栈）并且栈空（没有需要回溯查看的节点）</p>
+
+<p>下面就是前序遍历的迭代方式实现：</p>
+
+<pre><code>    def preOrder(self):
+        stack = []
+        pNode = self.root
+        while pNode != None :
+            while pNode != None :
+                print(pNode.data,end=&quot;,&quot;)
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            if len(stack) &gt; 0:
+                pNode = stack.pop()
+            else:
+                pNode = None
+            
+            while pNode != None and pNode.right == None:
+                if len(stack) &gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            
+            if pNode != None:
+                pNode = pNode.right
+ 
+</code></pre>
+
+<h3 id="3-2-中序遍历:6ca1fd9681da82758f519415a75dcb3a">3.2 中序遍历</h3>
+
+<p>中序遍历的分析类似与前序遍历，下面是中序遍历的递归和迭代实现</p>
+
+<p>中序遍历的递归实现：</p>
+
+<pre><code>    def inOrderRecursive(self,treeNode):
+        if treeNode == None:
+            return None
+        else:
+            self.inOrderRecursive(treeNode.left)
+            print(treeNode.data,end=&quot;,&quot;)
+            self.inOrderRecursive(treeNode.right)
+</code></pre>
+
+<p>中序遍历的迭代实现</p>
+
+<pre><code>    def inOrder(self):
+        stack = []
+        pNode = self.root
+        while pNode != None:
+            while pNode.left != None:
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            print(pNode.data,end=&quot;,&quot;)
+            
+            while pNode != None and pNode.right == None:
+                if len(stack) &gt; 0:
+                    pNode = stack.pop()
+                    print(pNode.data,end=&quot;,&quot;)
+                else:
+                    pNode = None
+            
+            if pNode != None :
+                pNode = pNode.right
+</code></pre>
+
+<h3 id="3-3-后序遍历:6ca1fd9681da82758f519415a75dcb3a">3.3 后序遍历</h3>
+
+<p>后序遍历首先遍历左子树，然后遍历右子树，最后访问根结点，在遍历左、右子树时，仍然先遍历左子树，然后遍历右子树，最后遍历根结点。</p>
+
+<ul>
+<li><p>后序遍历的递归实现</p>
+
+<pre><code>def postOrderRecursive(self,treeNode):
+    if treeNode == None:
+        return None
+    else:
+        self.postOrderRecursive(treeNode.left)
+        self.postOrderRecursive(treeNode.right)
+        print(treeNode.data,end=&quot;,&quot;)
+</code></pre></li>
+
+<li><p>后序遍历的迭代实现</p></li>
+</ul>
+
+<p>运用上述分析方法：</p>
+
+<p>后序遍历的连续递归描述：</p>
+
+<pre><code>    def postOrder(self):
+        stack = []
+        pNode = self.root
+        markNode = None
+        while pNode != None:
+            #左子节点压栈
+            while pNode != None and pNode.left != markNode: #markNode容易忽略
+                stack.append(pNode)
+                pNode = pNode.left
+            
+            if pNode == None:
+                pNode = stack.pop()
+            
+            #没有右子节点的左子节点打印、出栈    
+            while pNode != None and pNode.right == None : 
+                print(pNode.data,end=&quot;,&quot;)
+                if pNode.left == markNode: #markNode无用
+                    markNode = pNode
+                if len(stack) &gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            
+            #右子树处理    
+            if pNode != None and pNode.right != markNode: #markNode可能等于None
+                stack.append(pNode)
+                pNode = pNode.right
+                markNode = pNode
+            elif pNode != None and pNode.right == markNode :
+                print(pNode.data,end=&quot;,&quot;)
+                markNode = pNode
+                if len(stack) &gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None
+            elif pNode != None and pNode.right == None:
+                print(pNode.data,end=&quot;,&quot;)
+                markNode = pNode
+                if len(stack) &gt; 0:
+                    pNode = stack.pop()
+                else:
+                    pNode = None    
+</code></pre>
+
+</div>
+
+
+  <footer class="container">
+  <div class="container navigation no-print">
+  <h2>Navigation</h2>
+  
+  
+
+    
+    <a class="prev" href="https://gdonzy.github.io/2016/04/22/%E7%BA%A2%E9%BB%91%E6%A0%91%E7%9A%84%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E7%8E%B0/" title="红黑树的原理与实现">
+      Previous
+    </a>
+    
+
+    
+    <a class="next" href="https://gdonzy.github.io/2016/05/22/python%E7%9A%84%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B/" title="Python的进程、线程和协程">
+      Next
+    </a>
+    
+
+  
+
+
+</div>
+
+  <div class="container comments">
+  <h2>Comments</h2>
+  
+
+</div>
+
+</footer>
+
+</article>
+      <footer id="main-footer" class="container main_footer">
+  
+
+  <div class="container nav foot no-print">
+  
+<a href="https://gdonzy.github.io/license">license</a>
+
+
+  <a class="toplink" href="#">back to top</a>
+
+</div>
+
+  <div class="container credits">
+  
+<div class="container footline">
+  
+  code with <i class='fa fa-heart'></i>
+
+
+</div>
+
+
+  
+<div class="container copyright">
+  
+  &copy; 2015 gxd.try@gmail.com.
+
+
+</div>
+
+
+</div>
+
+</footer>
+
+    </main>
+    
+
+
+<script src="https://gdonzy.github.io/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+
+
+    
+  </body>
+</html>
+
